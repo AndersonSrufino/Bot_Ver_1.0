@@ -1,0 +1,33 @@
+/newbot - criar um novo bot
+/mybots - editar seus bots
+
+Editar Bots
+/setname - alterar o nome de um bot
+/setdescription - alterar a descrição do bot
+/setabouttext - alterar as informações do perfil (seção "sobre")
+/setuserpic - alterar a foto de perfil do bot
+/setcommands - alterar a lista de comandos
+/deletebot - deletar um bot
+
+Configurações do Bot
+/token - obter o token de autorização
+/revoke - revogar o token de acesso do bot
+/setinline - alternar o modo inline ([suspicious link removed])
+/setinlinegeo - alternar as solicitações de localização inline (https://core.telegram.org/bots/inline#location-based-results)
+/setinlinefeedback - alterar as configurações de feedback inline (https://core.telegram.org/bots/inline#collecting-feedback)
+/setjoingroups - seu bot pode ser adicionado a grupos?
+/setprivacy - alternar o modo de privacidade (https://core.telegram.org/bots/features#privacy-mode) em grupos
+
+Aplicativos Web (Web Apps)
+/myapps - editar seus aplicativos web (https://core.telegram.org/bots/webapps)
+/newapp - criar um novo aplicativo web (https://core.telegram.org/bots/webapps)
+/listapps - obter uma lista dos seus aplicativos web
+/editapp - editar um aplicativo web
+/deleteapp - deletar um aplicativo web existente
+
+Jogos
+/mygames - editar seus jogos (https://core.telegram.org/bots/games)
+/newgame - criar um novo jogo (https://core.telegram.org/bots/games)
+/listgames - obter uma lista dos seus jogos
+/editgame - editar um jogo
+/deletegame - deletar um jogo existente
