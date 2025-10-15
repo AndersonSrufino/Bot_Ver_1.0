@@ -1,16 +1,36 @@
-
-import telepot, time,json,requests
+import telepot, time, json, requests, magic, os
 from datetime import date, timedelta
 
 # telepot.api.set_proxy('http://192.168.0.1:3128',('usuario','senha'))
-#proxy = {
+# proxy = {
 #    'http': 'http://usuário:senha@192.168.0.1:3128',
 #    'https': 'http://usuário:senha@192.168.0.1:3128',
-#}
+# }
+
 
 def principal(msg):
     content_type, char_type, char_id = telepot.glance(msg)
-    
+
+    if content_type == "document":
+        file_id = msg[content_type]["file_id"]
+        # O nome do arquivo será o próprio file_id
+        file_path = file_id 
+        
+        try:
+            # Baixa o arquivo
+            bot.download_file(file_id, file_path)
+            
+            # Verifica o tipo de arquivo
+            tipo_arquivo = magic.from_file(file_path)
+            bot.sendMessage(char_id, f"O tipo do arquivo é: {tipo_arquivo}")
+            
+        finally:
+            # Garante que o arquivo seja removido, mesmo se ocorrer um erro
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+    # codigo para verificar o clima na api inmet
+    """
     if content_type == 'text':
         mensagem = msg['text']
 
@@ -49,8 +69,10 @@ def principal(msg):
                 bot.sendMessage(char_id, f"Desculpe, não consegui obter a previsão do tempo. Erro: {e}")
     else:
         bot.sendMessage(char_id, f'Desculpe no momento funcionamos apenas com comandos em texto')
+"""
 
-bot = telepot.Bot('8218649012:AAF_uIHTNiJFFzsnTpHRyldTogsD1VU-YjY')
+
+bot = telepot.Bot("8218649012:AAF_uIHTNiJFFzsnTpHRyldTogsD1VU-YjY")
 bot.message_loop(principal)
 
 while 1:
