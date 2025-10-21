@@ -1,4 +1,4 @@
-import telepot, time, json, requests, magic, os
+import telepot, time, json, requests, magic, os, pytesseract
 from datetime import date, timedelta
 from PIL import Image, ImageDraw, ImageFont
 
@@ -8,6 +8,15 @@ from PIL import Image, ImageDraw, ImageFont
 #    'https': 'http://usuário:senha@192.168.0.1:3128',
 # }
 
+
+# --- CONFIGURAÇÃO ROBUSTA DO TESSERACT ---
+# Define o caminho para o executável do Tesseract
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+# Define a variável de ambiente que aponta para a pasta de dados de idioma
+# Esta é a forma mais confiável de garantir que o Tesseract encontre os idiomas.
+tessdata_path = r'C:\Program Files\Tesseract-OCR\tessdata'
+os.environ['TESSDATA_PREFIX'] = tessdata_path
 
 # --- MANIPULADORES DE COMANDOS DE TEXTO ---
 def handle_imagem(char_id, mensagem):
@@ -96,22 +105,28 @@ def handle_text(char_id, msg):
 # --- MANIPULADORES DE TIPOS DE CONTEÚDO ---
 def handle_photo(char_id, msg):
     file_id = msg["photo"][-1]["file_id"]
-    file_path = f"{file_id}.jpg"  # Define um nome para o arquivo temporário
+    file_path = f"{file_id}.jpg"
 
     try:
-        # Baixa o arquivo da foto.
         bot.download_file(file_id, file_path)
 
-        # Usa a biblioteca magic para confirmar o tipo (opcional, mas bom para consistência).
-        tipo_arquivo = magic.from_file(file_path)
-        bot.sendMessage(char_id, f"Recebi sua foto! O tipo dela é: {tipo_arquivo}")
-
-        # Aqui você poderia adicionar um processamento de imagem, se quisesse.
+        try:
+            foto = Image.open(file_path)
+            # A chamada agora é mais simples, sem o 'config'
+            texto = pytesseract.image_to_string(foto, lang='por')
+            
+            if texto and not texto.isspace():
+                bot.sendMessage(char_id, f"Texto extraído da imagem:\n\n{texto}")
+            else:
+                bot.sendMessage(char_id, "Recebi sua foto, mas não consegui encontrar nenhum texto nela.")
+        
+        except Exception as ocr_error:
+            bot.sendMessage(char_id, f"Recebi a foto, mas ocorreu um erro ao tentar ler o texto: {ocr_error}")
 
     finally:
-        # Garante que a foto baixada seja sempre removida.
         if os.path.exists(file_path):
             os.remove(file_path)
+
 
 # --- METODO PARA IDENTIFICAR O TIPO DE DOCUMENTO ---
 def handle_document(char_id, msg):
