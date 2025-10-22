@@ -18,3 +18,7 @@ Traceback (most recent call last):
 telepot.exception.TelegramError: ('Bad Request: unsupported parse_mode', 400, {'ok': False, 'error_code': 400, 'description': 'Bad Request: unsupported parse_mode'})
 2025-10-22 13:53:05,130 - INFO - Registrada primeira localização para chat 5455158457: -3.733483,-38.511723
 2025-10-22 13:53:25,977 - INFO - Distância calculada para chat 5455158457: 2361.6935019359817 km (from (-3.733483, -38.511723) to (-23.558855, -46.647617))
+2025-10-22 15:10:45,891 - INFO - Registrada primeira localização para chat 5455158457: -4.679962,-38.602097
+2025-10-22 15:11:07,599 - INFO - Distância calculada para chat 5455158457: 2594.6777726456594 km (from (-4.679962, -38.602097) to (-23.243069, -53.354048))
+2025-10-22 15:20:27,912 - INFO - Localização base registrada para chat 5455158457: -3.8007494007575136,-38.59834326748713
+2025-10-22 15:20:46,819 - INFO - Distância calculada para chat 5455158457: 2135.7341046037805 km (from (-3.8007494007575136, -38.59834326748713) to (-15.153654, -54.360001))

@@ -176,16 +176,40 @@ def handle_geo(char_id, msg):
     Fluxo:
     - Se for a primeira localização do chat, guarda em last_location e pede a segunda.
     - Se já existir uma localização anterior, calcula a distância, envia e remove o estado.
+    - Se digitado ? retorna uma localização ja definida
     """
     try:
-        # se a mensagem contiver apenas o comando '?', envie uma localização de exemplo
-        if msg.get('text', '').strip() == '?':
-            try:
-                # tenta enviar como localização (latitude, longitude)
-                return bot.sendLocation(char_id, -3.8007494007575136, -38.59834326748713)
-            except Exception:
-                # fallback para mensagem de texto se sendLocation não estiver disponível
-                return bot.sendMessage(char_id, "-3.8007494007575136, -38.59834326748713")
+        # se a mensagem começar com '?', pode ser '? lat,lon' ou apenas '?' para registrar base
+        text = msg.get('text', '').strip()
+        if text.startswith('?'):
+            coords_text = text[1:].strip()
+            # caso o usuário envie apenas '?' registramos uma localização base
+            if coords_text == '':
+                bot_lat, bot_lon = -3.8007494007575136, -38.59834326748713
+                last_location[char_id] = (bot_lat, bot_lon)
+                bot.sendMessage(char_id, "Localização base registrada. Agora envie sua localização para que eu calcule a distância.")
+                logging.info("Localização base registrada para chat %s: %s,%s", char_id, bot_lat, bot_lon)
+                return
+
+            # tenta extrair duas coordenadas do texto (aceita separador ',' ';' ou espaço)
+            raw = coords_text.replace(';', ',')
+            parts = raw.replace(',', ' ').split()
+            if len(parts) >= 2:
+                try:
+                    lat = float(parts[0].replace(',', '.'))
+                    lon = float(parts[1].replace(',', '.'))
+                    try:
+                        return bot.sendLocation(char_id, lat, lon)
+                    except Exception:
+                        # caso api do telegran fora do ar, enviar como mensagem com link
+                        maps = f"https://www.google.com/maps/search/?api=1&query={lat},{lon}"
+                        return bot.sendMessage(char_id, f"Coordenadas: {lat}, {lon}\n{maps}")
+                except ValueError:
+                    bot.sendMessage(char_id, "Não consegui entender as coordenadas. Use: ? lat,lon (ex: ? -3.80,-38.59)")
+                    return
+            else:
+                bot.sendMessage(char_id, "Formato de coordenadas inválido. Use: ? lat,lon ou envie uma localização pelo botão do Telegram.")
+                return
 
         if "location" not in msg:
             bot.sendMessage(char_id, "Por favor, envie uma localização (location).")
