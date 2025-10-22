@@ -12,22 +12,23 @@ from geopy import distance
 
 # --- CONFIGURAÇÃO ROBUSTA DO TESSERACT ---
 # Define o caminho para o executável do Tesseract
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # Define a variável de ambiente que aponta para a pasta de dados de idioma
 # Esta é a forma mais confiável de garantir que o Tesseract encontre os idiomas.
-tessdata_path = r'C:\Program Files\Tesseract-OCR\tessdata'
-os.environ['TESSDATA_PREFIX'] = tessdata_path
+tessdata_path = r"C:\Program Files\Tesseract-OCR\tessdata"
+os.environ["TESSDATA_PREFIX"] = tessdata_path
 
 # --- CONFIGURAÇÃO DE LOG ---
 logging.basicConfig(
-    filename='bot.log',
+    filename="bot.log",
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 # Armazenamento simples da última localização por chat
 last_location = {}
+
 
 # --- MANIPULADORES DE COMANDOS DE TEXTO ---
 def handle_imagem(char_id, mensagem):
@@ -56,6 +57,7 @@ def handle_imagem(char_id, mensagem):
         if os.path.exists(file_path):
             os.remove(file_path)
 
+
 # --- METODO PARA VERIFICAR O CLIMA PELA API INMET ---
 def handle_clima(char_id):
     try:
@@ -65,9 +67,9 @@ def handle_clima(char_id):
         ).json()
 
         data = date.today()
-        cidade_nome = requisicao[codigo_cidade][data.strftime("%d/%m/%Y")][
-            "manha"
-        ]["entidade"]
+        cidade_nome = requisicao[codigo_cidade][data.strftime("%d/%m/%Y")]["manha"][
+            "entidade"
+        ]
         resposta = f"O clima para {cidade_nome}\n\n"
 
         # Previsão para hoje e amanhã (manhã, tarde, noite)
@@ -86,9 +88,7 @@ def handle_clima(char_id):
             data_str = data.strftime("%d/%m/%Y")
             if data_str in requisicao[codigo_cidade]:
                 previsao_dia = requisicao[codigo_cidade][data_str]
-                resposta += (
-                    f"*{data_str}* (resumo): {previsao_dia['resumo']}\n"
-                )
+                resposta += f"*{data_str}* (resumo): {previsao_dia['resumo']}\n"
             data += timedelta(days=1)
 
         bot.sendMessage(char_id, resposta, parse_mode="Markdown")
@@ -109,8 +109,9 @@ def handle_text(char_id, msg):
         handle_imagem(char_id, mensagem)
     elif comando == "clima":
         handle_clima(char_id)
-    elif comando == '?':
-        handle_geo(char_id)
+    elif comando == "?":
+        # passar o dict completo para que handle_geo acesse 'location' ou 'text'
+        handle_geo(char_id, msg)
     else:
         bot.sendMessage(char_id, "Comando de texto não reconhecido.")
 
@@ -127,11 +128,14 @@ def handle_photo(char_id, msg):
 
             try:
                 # tenta extrair texto com tesseract
-                texto = pytesseract.image_to_string(foto, lang='por')
+                texto = pytesseract.image_to_string(foto, lang="por")
                 if texto and not texto.isspace():
                     bot.sendMessage(char_id, f"Texto extraído da imagem:\n\n{texto}")
                 else:
-                    bot.sendMessage(char_id, "Recebi sua foto, mas não consegui encontrar nenhum texto nela.")
+                    bot.sendMessage(
+                        char_id,
+                        "Recebi sua foto, mas não consegui encontrar nenhum texto nela.",
+                    )
 
             except pytesseract.pytesseract.TesseractError as t_err:
                 # Erro específico do Tesseract (problema com exec, tessdata, permissões etc.)
@@ -139,14 +143,17 @@ def handle_photo(char_id, msg):
                 logging.error("TesseractError durante OCR: %s\n%s", t_err, tb)
                 bot.sendMessage(
                     char_id,
-                    "Erro no OCR: falha ao inicializar o Tesseract ou carregar os dados de idioma. Verifique a instalação e a variável TESSDATA_PREFIX."
+                    "Erro no OCR: falha ao inicializar o Tesseract ou carregar os dados de idioma. Verifique a instalação e a variável TESSDATA_PREFIX.",
                 )
 
             except Exception as ocr_error:
                 # Erro genérico durante o OCR
                 tb = traceback.format_exc()
                 logging.exception("Erro inesperado durante OCR: %s", ocr_error)
-                bot.sendMessage(char_id, f"Ocorreu um erro ao tentar ler o texto da imagem. Erro: {ocr_error}")
+                bot.sendMessage(
+                    char_id,
+                    f"Ocorreu um erro ao tentar ler o texto da imagem. Erro: {ocr_error}",
+                )
 
         except Exception as img_err:
             tb = traceback.format_exc()
@@ -158,7 +165,10 @@ def handle_photo(char_id, msg):
             try:
                 os.remove(file_path)
             except Exception as remove_err:
-                logging.warning("Falha ao remover arquivo temporario %s: %s", file_path, remove_err)
+                logging.warning(
+                    "Falha ao remover arquivo temporario %s: %s", file_path, remove_err
+                )
+
 
 def handle_geo(char_id, msg):
     """Calcula distância entre duas posições 'location' enviadas pelo mesmo chat.
@@ -168,16 +178,21 @@ def handle_geo(char_id, msg):
     - Se já existir uma localização anterior, calcula a distância, envia e remove o estado.
     """
     try:
-        local = msg['text']
-        if local == 'text':
-            bot.sendMessage(char_id, '-3.8007494007575136,','-38.59834326748713')
+        # se a mensagem contiver apenas o comando '?', envie uma localização de exemplo
+        if msg.get('text', '').strip() == '?':
+            try:
+                # tenta enviar como localização (latitude, longitude)
+                return bot.sendLocation(char_id, -3.8007494007575136, -38.59834326748713)
+            except Exception:
+                # fallback para mensagem de texto se sendLocation não estiver disponível
+                return bot.sendMessage(char_id, "-3.8007494007575136, -38.59834326748713")
 
-        if 'location' not in msg:
+        if "location" not in msg:
             bot.sendMessage(char_id, "Por favor, envie uma localização (location).")
             return
 
-        lat = msg['location'].get('latitude')
-        lon = msg['location'].get('longitude')
+        lat = msg["location"].get("latitude")
+        lon = msg["location"].get("longitude")
 
         if lat is None or lon is None:
             bot.sendMessage(char_id, "Localização inválida.")
@@ -186,8 +201,13 @@ def handle_geo(char_id, msg):
         if char_id not in last_location:
             # guarda primeira localização
             last_location[char_id] = (lat, lon)
-            bot.sendMessage(char_id, "Localização registrada. Agora envie a segunda localização para calcular a distância.")
-            logging.info("Registrada primeira localização para chat %s: %s,%s", char_id, lat, lon)
+            bot.sendMessage(
+                char_id,
+                "Localização registrada. Agora envie a segunda localização para calcular a distância.",
+            )
+            logging.info(
+                "Registrada primeira localização para chat %s: %s,%s", char_id, lat, lon
+            )
             return
 
         # já existe localização anterior -> calcula distância
@@ -196,9 +216,19 @@ def handle_geo(char_id, msg):
         local_i = (lat_i, lon_i)
         local_f = (lat_f, lon_f)
         try:
+
             distancia_km = distance.distance(local_i, local_f).km
-            bot.sendMessage(char_id, f"A distância entre as duas localizações é de {format(distancia_km, '.2f')} km")
-            logging.info("Distância calculada para chat %s: %s km (from %s to %s)", char_id, distancia_km, local_i, local_f)
+            bot.sendMessage(
+                char_id,
+                f"A distância entre as duas localizações é de {format(distancia_km, '.2f')} km",
+            )
+            logging.info(
+                "Distância calculada para chat %s: %s km (from %s to %s)",
+                char_id,
+                distancia_km,
+                local_i,
+                local_f,
+            )
         except Exception as dist_err:
             tb = traceback.format_exc()
             logging.exception("Erro ao calcular distância: %s", dist_err)
@@ -208,7 +238,6 @@ def handle_geo(char_id, msg):
         tb = traceback.format_exc()
         logging.exception("Erro no handle_geo: %s", e)
         bot.sendMessage(char_id, f"Erro ao processar localização: {e}")
-
 
 
 # --- METODO PARA IDENTIFICAR O TIPO DE DOCUMENTO ---
@@ -238,7 +267,9 @@ def principal(msg):
     elif content_type == "location":
         handle_geo(char_id, msg)
     else:
-        bot.sendMessage(char_id, "Desculpe, não sei como processar este tipo de conteúdo.")
+        bot.sendMessage(
+            char_id, "Desculpe, não sei como processar este tipo de conteúdo."
+        )
 
 
 bot = telepot.Bot("8218649012:AAF_uIHTNiJFFzsnTpHRyldTogsD1VU-YjY")

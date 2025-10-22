@@ -1,2 +1,20 @@
 2025-10-22 10:26:07,492 - INFO - Registrada primeira localização para chat 5455158457: -10.510023,-48.979547
 2025-10-22 10:26:23,856 - INFO - Distância calculada para chat 5455158457: 1372.6998831286967 km (from (-10.510023, -48.979547) to (-3.812508, -38.510077))
+2025-10-22 13:31:33,541 - ERROR - Erro no handle_geo: ('Bad Request: unsupported parse_mode', 400, {'ok': False, 'error_code': 400, 'description': 'Bad Request: unsupported parse_mode'})
+Traceback (most recent call last):
+  File "d:\Facudade\TI\Repo_Codigos\Bot_Ver_1.0\bot_depore.py", line 173, in handle_geo
+    bot.sendMessage(char_id, '-3.8007494007575136,','-38.59834326748713')
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anderson\AppData\Local\Programs\Python\Python313\Lib\site-packages\telepot\__init__.py", line 513, in sendMessage
+    return self._api_request('sendMessage', _rectify(p))
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anderson\AppData\Local\Programs\Python\Python313\Lib\site-packages\telepot\__init__.py", line 491, in _api_request
+    return api.request((self._token, method, params, files), **kwargs)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Anderson\AppData\Local\Programs\Python\Python313\Lib\site-packages\telepot\api.py", line 155, in request
+    return _parse(r)
+  File "C:\Users\Anderson\AppData\Local\Programs\Python\Python313\Lib\site-packages\telepot\api.py", line 150, in _parse
+    raise exception.TelegramError(description, error_code, data)
+telepot.exception.TelegramError: ('Bad Request: unsupported parse_mode', 400, {'ok': False, 'error_code': 400, 'description': 'Bad Request: unsupported parse_mode'})
+2025-10-22 13:53:05,130 - INFO - Registrada primeira localização para chat 5455158457: -3.733483,-38.511723
+2025-10-22 13:53:25,977 - INFO - Distância calculada para chat 5455158457: 2361.6935019359817 km (from (-3.733483, -38.511723) to (-23.558855, -46.647617))
