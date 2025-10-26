@@ -199,7 +199,7 @@ def handle_geo(char_id, msg):
                     lat = float(parts[0].replace(',', '.'))
                     lon = float(parts[1].replace(',', '.'))
                     try:
-                        return bot.sendLocation(char_id, lat, lon)
+                        return bot.sendLocation(char_id, lat, lon, live_period=360)
                     except Exception:
                         # caso api do telegran fora do ar, enviar como mensagem com link
                         maps = f"https://www.google.com/maps/search/?api=1&query={lat},{lon}"
