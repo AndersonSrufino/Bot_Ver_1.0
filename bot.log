@@ -22,3 +22,6 @@ telepot.exception.TelegramError: ('Bad Request: unsupported parse_mode', 400, {'
 2025-10-22 15:11:07,599 - INFO - Distância calculada para chat 5455158457: 2594.6777726456594 km (from (-4.679962, -38.602097) to (-23.243069, -53.354048))
 2025-10-22 15:20:27,912 - INFO - Localização base registrada para chat 5455158457: -3.8007494007575136,-38.59834326748713
 2025-10-22 15:20:46,819 - INFO - Distância calculada para chat 5455158457: 2135.7341046037805 km (from (-3.8007494007575136, -38.59834326748713) to (-15.153654, -54.360001))
+2025-10-28 18:00:46,076 - ERROR - Erro ao buscar código da cidade: 'id'
+2025-10-28 18:00:53,885 - ERROR - Erro ao buscar código da cidade: 'id'
+2025-10-28 18:05:58,393 - ERROR - Erro ao buscar código da cidade: 'id'

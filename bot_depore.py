@@ -1,3 +1,4 @@
+# --- FUNÇÃO AUXILIAR: BUSCA CÓDIGO DA CIDADE PELO NOME ---
 import telepot, time, json, requests, magic, os, pytesseract, traceback, logging
 from datetime import date, timedelta
 from PIL import Image, ImageDraw, ImageFont
@@ -78,28 +79,54 @@ def handle_imagem(char_id, mensagem):
         if os.path.exists(file_path):
             os.remove(file_path)
 
-
-# --- METODO PARA VERIFICAR O CLIMA PELA API INMET ---
-def handle_clima(char_id):
-    """Busca a previsão do tempo via API do INMET e envia um resumo para o usuário.
-    Se a API falhar, envia mensagem de erro amigável.
+def buscar_codigo_cidade(nome_cidade):
+    """Busca o código da cidade no INMET a partir do nome informado pelo usuário.
+    Faz uma requisição para a lista de cidades do INMET e retorna o código correspondente.
+    Retorna None se não encontrar.
     """
     try:
-        codigo_cidade = "2304400"
+        # API pública do INMET com lista de cidades e códigos
+        url = "https://apiprevmet3.inmet.gov.br/municipios/"
+        resposta = requests.get(url, timeout=10)
+        if resposta.status_code != 200:
+            return None
+        cidades = resposta.json()
+        nome_cidade = nome_cidade.strip().lower()
+        for cidade in cidades:
+            # Busca por nome exato ou parcial (ignora acentuação e caixa)
+            if nome_cidade in cidade['nome'].lower():
+                return cidade['geocode']
+        return None
+    except Exception as e:
+        logging.error("Erro ao buscar código da cidade: %s", e)
+        return None
+
+# --- METODO PARA VERIFICAR O CLIMA PELA API INMET ---
+def handle_clima(char_id, nome_cidade):
+    """Busca a previsão do tempo via API do INMET para a cidade informada.
+    Se não for informada, pede ao usuário. Se a API falhar, envia mensagem de erro amigável.
+    """
+    try:
+        if not nome_cidade:
+            bot.sendMessage(char_id, "Por favor, informe a cidade. Exemplo: clima Fortaleza")
+            return
+        codigo_cidade = buscar_codigo_cidade(nome_cidade)
+        if not codigo_cidade:
+            bot.sendMessage(char_id, f"Cidade '{nome_cidade}' não encontrada. Tente o nome completo ou sem acentos.")
+            return
         requisicao = requests.get(
             f"https://apiprevmet3.inmet.gov.br/previsao/{codigo_cidade}"
         ).json()
 
         data = date.today()
-        cidade_nome = requisicao[codigo_cidade][data.strftime("%d/%m/%Y")]["manha"][
-            "entidade"
-        ]
-        resposta = f"O clima para {cidade_nome}\n\n"
+        cidade_nome = nome_cidade.title()
+        cidade_dados= requisicao[data.strftime("%d/%m/%Y")]["manha"]["entidade"]
+        resposta = f"O clima para {cidade_nome}\n\n {cidade_dados}"
 
         # Previsão para hoje e amanhã (manhã, tarde, noite)
         for i in range(2):
             data_str = data.strftime("%d/%m/%Y")
-            if data_str in requisicao[codigo_cidade]:
+            if data_str in requisicao.get(codigo_cidade, {}):
                 previsao_dia = requisicao[codigo_cidade][data_str]
                 resposta += f"*{data_str}*\n"
                 resposta += f"Manhã: {previsao_dia['manha']['resumo']} - Max: {previsao_dia['manha']['temp_max']} - Min: {previsao_dia['manha']['temp_min']}\n"
@@ -110,7 +137,7 @@ def handle_clima(char_id):
         # Previsão resumida para os próximos 3 dias
         for i in range(3):
             data_str = data.strftime("%d/%m/%Y")
-            if data_str in requisicao[codigo_cidade]:
+            if data_str in requisicao.get(codigo_cidade, {}):
                 previsao_dia = requisicao[codigo_cidade][data_str]
                 resposta += f"*{data_str}* (resumo): {previsao_dia['resumo']}\n"
             data += timedelta(days=1)
@@ -130,12 +157,15 @@ def handle_text(char_id, msg):
     Extrai o comando e chama o handler correspondente.
     """
     mensagem = msg["text"]
-    comando = mensagem.lower().split()[0]  # Pega a primeira palavra como comando
+    partes = mensagem.strip().split()
+    comando = partes[0].lower() if partes else ""
 
     if comando == "imagem":
         handle_imagem(char_id, mensagem)
     elif comando == "clima":
-        handle_clima(char_id)
+        # Permite: clima Fortaleza, clima "São Paulo", etc.
+        nome_cidade = " ".join(partes[1:]) if len(partes) > 1 else None
+        handle_clima(char_id, nome_cidade)
     elif comando == "?":
         # passar o dict completo para que handle_geo acesse 'location' ou 'text'
         handle_geo(char_id, msg)
