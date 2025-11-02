@@ -118,36 +118,47 @@ def handle_clima(char_id, nome_cidade):
             f"https://apiprevmet3.inmet.gov.br/previsao/{codigo_cidade}"
         ).json()
 
-        data = date.today()
+        # A API do INMET retorna um dicionário aninhado com o mesmo código da cidade.
+        # Precisamos acessar o dicionário interno que contém as previsões diárias.
+        previsoes_diarias = requisicao.get(codigo_cidade, {}).get(codigo_cidade)
+        if not previsoes_diarias or not isinstance(previsoes_diarias, dict):
+            bot.sendMessage(char_id, f"Não foram encontradas previsões para {nome_cidade.title()}. A API pode estar indisponível.")
+            return
+
         cidade_nome = nome_cidade.title()
-        cidade_dados= requisicao[data.strftime("%d/%m/%Y")]["manha"]["entidade"]
-        resposta = f"O clima para {cidade_nome}\n\n {cidade_dados}"
+        resposta = f"O clima para {cidade_nome}\n\n"
+        previsao_adicionada = False
 
-        # Previsão para hoje e amanhã (manhã, tarde, noite)
-        for i in range(2):
-            data_str = data.strftime("%d/%m/%Y")
-            if data_str in requisicao.get(codigo_cidade, {}):
-                previsao_dia = requisicao[codigo_cidade][data_str]
-                resposta += f"*{data_str}*\n"
-                resposta += f"Manhã: {previsao_dia['manha']['resumo']} - Max: {previsao_dia['manha']['temp_max']} - Min: {previsao_dia['manha']['temp_min']}\n"
-                resposta += f"Tarde: {previsao_dia['tarde']['resumo']} - Max: {previsao_dia['manha']['temp_max']} - Min: {previsao_dia['manha']['temp_min']}\n"
-                resposta += f"Noite: {previsao_dia['noite']['resumo']} - Max: {previsao_dia['manha']['temp_max']} - Min: {previsao_dia['manha']['temp_min']}\n\n"
+        data = date.today()
+        for i in range(5):
+            data_str_display = data.strftime("%d/%m/%Y") # Formato para exibição
+            data_str_api = data.strftime("%Y-%m-%d")     # Formato esperado pela API
+            if data_str_api in previsoes_diarias:
+                previsao_dia = previsoes_diarias[data_str_api]
+                previsao_adicionada = True
+                if i < 2:  # Detalhes para os primeiros 2 dias
+                    resposta += f"*{data_str_display}*\n"
+                    if "manha" in previsao_dia:
+                        resposta += f"Manhã: {previsao_dia['manha']['resumo']} - Max: {previsao_dia['manha']['temp_max']} - Min: {previsao_dia['manha']['temp_min']}\n"
+                    if "tarde" in previsao_dia:
+                        resposta += f"Tarde: {previsao_dia['tarde']['resumo']} - Max: {previsao_dia['tarde']['temp_max']} - Min: {previsao_dia['tarde']['temp_min']}\n"
+                    if "noite" in previsao_dia:
+                        resposta += f"Noite: {previsao_dia['noite']['resumo']} - Max: {previsao_dia['noite']['temp_max']} - Min: {previsao_dia['noite']['temp_min']}\n\n"
+                else:  # Resumo para os dias seguintes
+                    if "resumo" in previsao_dia: # Use data_str_display para o resumo também
+                        resposta += f"*{data_str_display}* (resumo): {previsao_dia['resumo']}\n"
             data += timedelta(days=1)
 
-        # Previsão resumida para os próximos 3 dias
-        for i in range(3):
-            data_str = data.strftime("%d/%m/%Y")
-            if data_str in requisicao.get(codigo_cidade, {}):
-                previsao_dia = requisicao[codigo_cidade][data_str]
-                resposta += f"*{data_str}* (resumo): {previsao_dia['resumo']}\n"
-            data += timedelta(days=1)
-
-        bot.sendMessage(char_id, resposta, parse_mode="Markdown")
+        if not previsao_adicionada:
+            bot.sendMessage(char_id, f"Não foi possível obter a previsão para {cidade_nome}.")
+        else:
+            bot.sendMessage(char_id, resposta, parse_mode="Markdown")
 
     except Exception as e:
+        logging.error(f"Erro ao buscar clima: {e}")
         bot.sendMessage(
             char_id,
-            f"Desculpe, não consegui obter a previsão do tempo. Erro: {e}",
+            f"Desculpe, não consegui obter a previsão do tempo. Verifique o log para mais detalhes.",
         )
 
 
