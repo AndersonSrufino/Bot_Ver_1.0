@@ -94,7 +94,7 @@ def buscar_codigo_cidade(nome_cidade):
         nome_cidade = nome_cidade.strip().lower()
         for cidade in cidades:
             # Busca por nome exato ou parcial (ignora acentuação e caixa)
-            if nome_cidade in cidade['nome'].lower():
+            if nome_cidade in cidade['nome'].lower() == nome_cidade:
                 return cidade['geocode']
         return None
     except Exception as e:
@@ -103,100 +103,68 @@ def buscar_codigo_cidade(nome_cidade):
 
 # --- METODO PARA VERIFICAR O CLIMA PELA API INMET ---
 def handle_clima(char_id, nome_cidade):
-    """Busca a previsão do tempo via API do INMET para a cidade informada.
-    Se não for informada, pede ao usuário. Se a API falhar, envia mensagem de erro amigável.
+    """Busca a previsão do tempo para uma cidade usando a API do INMET.
+
+    Exemplo de uso:
+    - Usuário envia: clima Fortaleza
+    - Bot responde com a previsão do tempo para Fortaleza para hoje e amanhã.
     """
+    if not nome_cidade:
+        bot.sendMessage(char_id, "Por favor, informe o nome da cidade. Ex: clima Fortaleza")
+        return
+
+    codigo_cidade = buscar_codigo_cidade(nome_cidade)
+
+    if not codigo_cidade:
+        bot.sendMessage(char_id, f"Não consegui encontrar a cidade '{nome_cidade}'. Verifique o nome e tente novamente.")
+        return
+
     try:
-        # 1. PREPARAÇÃO E VALIDAÇÃO DA ENTRADA
-        # Limpa espaços em branco e formata o nome da cidade (Ex: " fortaleza " -> "Fortaleza")
-        cidade_nome = nome_cidade.strip().title() if nome_cidade else ""
-        # Se o nome da cidade não foi fornecido com o comando, pede ao usuário para informar.
-        if not nome_cidade:
-            bot.sendMessage(char_id, "Por favor, informe a cidade. Exemplo: clima Fortaleza")
+        url = f"https://apiprevmet3.inmet.gov.br/previsao/{codigo_cidade}"
+        previsao_data = requests.get(url, timeout=10).json()
+
+        # A chave do dicionário é o próprio código da cidade
+        dados_cidade = previsao_data.get(codigo_cidade)
+        if not dados_cidade:
+            bot.sendMessage(char_id, f"Não foi possível obter a previsão para {nome_cidade}.")
+        # O JSON retornado já é o objeto da cidade, a chave é o próprio código.
+        # Não é necessário fazer .get(codigo_cidade)
+        if not previsao_data or not isinstance(previsao_data, dict):
+            bot.sendMessage(char_id, f"Não foi possível obter a previsão para '{nome_cidade}'. A resposta da API estava vazia ou em formato inesperado.")
             return
 
-        # 2. BUSCA DO CÓDIGO DA CIDADE
-        # Usa a função auxiliar para obter o código geográfico da cidade (ex: "Fortaleza" -> "2304400")
-        codigo_cidade = buscar_codigo_cidade(nome_cidade)
-        # Se o código não for encontrado, informa ao usuário e encerra a função.
-        if not codigo_cidade:
-            bot.sendMessage(char_id, f"Cidade '{nome_cidade}' não encontrada. Tente o nome completo ou sem acentos.")
+        hoje = date.today()
+        amanha = hoje + timedelta(days=1)
+
+        previsao_hoje = dados_cidade.get(hoje.strftime("%d/%m/%Y"))
+        previsao_amanha = dados_cidade.get(amanha.strftime("%d/%m/%Y"))
+        previsao_hoje = previsao_data.get(hoje.strftime("%d/%m/%Y"))
+        previsao_amanha = previsao_data.get(amanha.strftime("%d/%m/%Y"))
+
+        if not previsao_hoje or not previsao_amanha:
+            bot.sendMessage(char_id, f"A previsão para '{nome_cidade}' para hoje ou amanhã não está disponível no momento.")
             return
 
-        # 3. REQUISIÇÃO À API DE PREVISÃO DO TEMPO
-        # Monta a URL da API do INMET usando o código da cidade obtido.
-        url_previsao = f"https://apiprevmet3.inmet.gov.br/previsao/{codigo_cidade}"
-        # Faz a requisição GET para a API, com um timeout de 15 segundos.
-        resposta_api = requests.get(url_previsao, timeout=15)
-        # Verifica se a resposta da API foi um erro (ex: 404, 500). Se sim, lança uma exceção.
-        resposta_api.raise_for_status()  # Lança exceção para erros HTTP (4xx ou 5xx)
-        # Converte a resposta JSON (texto) em um dicionário Python.
-        dados_completos = resposta_api.json()
+        nome_cidade_formatado = previsao_hoje['manha']['entidade']
+        resposta = f"Previsão do tempo para {nome_cidade_formatado}:\n\n"
+        resposta += f"*Hoje ({hoje.strftime('%d/%m')}):*\n"
+        resposta = f"🌦️ Previsão do tempo para {nome_cidade_formatado}:\n\n"
+        resposta += f"🗓️ *Hoje ({hoje.strftime('%d/%m')}):*\n"
+        resposta += f"Mañana: {previsao_hoje['manha']['resumo']}\n"
+        resposta += f"Tarde: {previsao_hoje['tarde']['resumo']}\n"
+        resposta += f"Noite: {previsao_hoje['noite']['resumo']}\n\n"
+        resposta += f"*Amanhã ({amanha.strftime('%d/%m')}):*\n"
+        resposta += f"🗓️ *Amanhã ({amanha.strftime('%d/%m')}):*\n"
+        resposta += f"{previsao_amanha['resumo']}"
 
-        # 4. EXTRAÇÃO DOS DADOS DA RESPOSTA
-        # A estrutura da API é {codigo_cidade: {data: dados_previsao}}.
-        # Usamos .get(codigo_cidade) para acessar o dicionário com as previsões diárias de forma segura.
-        previsoes_diarias = dados_completos.get(codigo_cidade, {})
+        bot.sendMessage(char_id, resposta, parse_mode='Markdown')
 
-        # Se, mesmo com a resposta OK, os dados de previsão não forem encontrados, informa o usuário.
-        if not previsoes_diarias:
-            bot.sendMessage(char_id, f"Não foram encontradas previsões para {cidade_nome}. A API pode estar indisponível.")
-            return
-
-        # 5. MONTAGEM DA MENSAGEM DE RESPOSTA
-        # Inicia a string de resposta que será enviada ao usuário.
-        resposta = f"O clima para {cidade_nome}\n\n"
-        previsao_adicionada = False
-        data = date.today() # Pega a data atual para começar a previsão.
-
-        # Previsão para hoje e amanhã (detalhada)
-        for i in range(2):
-            data_str_display = data.strftime("%d/%m/%Y")
-            data_str_api = data.strftime("%Y-%m-%d")
-            previsao_dia = previsoes_diarias.get(data_str_api)
-
-            if previsao_dia:
-                previsao_adicionada = True
-                resposta += f"*{data_str_display}*\n"
-                # Usamos .get() para acesso seguro aos dados, evitando erros se uma chave não existir.
-                manha = previsao_dia.get('manha', {})
-                tarde = previsao_dia.get('tarde', {})
-                noite = previsao_dia.get('noite', {})
-                resposta += f"Manhã: {manha.get('resumo', 'N/A')} - Max: {manha.get('temp_max', 'N/A')} - Min: {manha.get('temp_min', 'N/A')}\n"
-                resposta += f"Tarde: {tarde.get('resumo', 'N/A')} - Max: {tarde.get('temp_max', 'N/A')} - Min: {tarde.get('temp_min', 'N/A')}\n"
-                resposta += f"Noite: {noite.get('resumo', 'N/A')} - Max: {noite.get('temp_max', 'N/A')} - Min: {noite.get('temp_min', 'N/A')}\n\n"
-            data += timedelta(days=1)
-
-        # Previsão resumida para os próximos 3 dias
-        for i in range(5):
-            data_str_display = data.strftime("%d/%m/%Y")
-            data_str_api = data.strftime("%Y-%m-%d")
-            previsao_dia = previsoes_diarias.get(data_str_api)
-
-            if previsao_dia:
-                previsao_adicionada = True
-                resposta += f"*{data_str_display}* (resumo): {previsao_dia.get('resumo', 'N/A')}\n"
-            data += timedelta(days=1) # Avança para o próximo dia.
-
-        # 6. ENVIO DA RESPOSTA FINAL
-        # Se nenhuma previsão foi encontrada no loop, envia uma mensagem de falha.
-        if not previsao_adicionada:
-            bot.sendMessage(char_id, f"Não foi possível obter a previsão para {cidade_nome}.")
-        else:
-            # Envia a mensagem formatada em Markdown para o usuário.
-            bot.sendMessage(char_id, resposta, parse_mode="Markdown")
-
-    except requests.exceptions.RequestException as http_err:
-        # Captura erros de conexão/HTTP (API fora do ar, sem internet, etc.)
-        logging.error(f"Erro de HTTP ao buscar clima: {http_err}")
-        bot.sendMessage(char_id, "Desculpe, o serviço de previsão do tempo parece estar indisponível no momento.")
+    except requests.exceptions.RequestException as e:
+        logging.error("Erro de requisição ao INMET: %s", e)
+        bot.sendMessage(char_id, "Desculpe, o serviço de previsão do tempo está indisponível no momento.")
     except Exception as e:
-        # Captura qualquer outro erro inesperado durante o processo.
-        logging.error(f"Erro ao buscar clima: {e}")
-        bot.sendMessage(
-            char_id,
-            "Desculpe, não consegui obter a previsão do tempo. Ocorreu um erro inesperado.",
-        )
+        logging.error("Erro ao processar previsão do tempo: %s", e)
+        bot.sendMessage(char_id, f"Ocorreu um erro ao buscar a previsão do tempo.")
 
 
 # --- METODO PARA DIRECIONAR COMANDOS DE TEXTO ---

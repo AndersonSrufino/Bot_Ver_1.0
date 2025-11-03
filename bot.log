@@ -26,3 +26,12 @@ telepot.exception.TelegramError: ('Bad Request: unsupported parse_mode', 400, {'
 2025-10-28 18:00:53,885 - ERROR - Erro ao buscar código da cidade: 'id'
 2025-10-28 18:05:58,393 - ERROR - Erro ao buscar código da cidade: 'id'
 2025-11-02 13:48:37,539 - ERROR - Erro ao buscar clima: 'NoneType' object has no attribute 'get'
+2025-11-03 13:46:02,643 - ERROR - Erro ao processar previsão do tempo: ('Bad Request: text is too long', 400, {'ok': False, 'error_code': 400, 'description': 'Bad Request: text is too long'})
+2025-11-03 13:46:33,673 - ERROR - Erro ao processar previsão do tempo: ('Bad Request: text is too long', 400, {'ok': False, 'error_code': 400, 'description': 'Bad Request: text is too long'})
+2025-11-03 13:48:54,218 - ERROR - Erro ao processar previsão do tempo: ('Bad Request: text is too long', 400, {'ok': False, 'error_code': 400, 'description': 'Bad Request: text is too long'})
+2025-11-03 13:49:50,896 - ERROR - Erro ao processar previsão do tempo: ('Bad Request: text is too long', 400, {'ok': False, 'error_code': 400, 'description': 'Bad Request: text is too long'})
+2025-11-03 13:58:53,761 - ERROR - Erro ao processar previsão do tempo: 2304400
+2025-11-03 13:59:39,029 - ERROR - Erro ao processar previsão do tempo: 2304400
+2025-11-03 14:00:03,831 - ERROR - Erro ao processar previsão do tempo: 2304400
+2025-11-03 14:00:44,895 - ERROR - Erro ao processar previsão do tempo: 2304400
+2025-11-03 14:08:51,947 - ERROR - Erro ao processar previsão do tempo: 'NoneType' object is not subscriptable
